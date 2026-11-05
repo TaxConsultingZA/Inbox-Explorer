@@ -135,3 +135,4 @@ If the application returns `403 Forbidden` (`AccessDenied`) with `Ensure Mail.Re
 2. Ensure the mailbox has a valid Exchange Online license and is active.
 3. Ensure the mailbox address in `OUTLOOK_MAILBOX_UPN` exactly matches the Primary SMTP or UPN in Exchange.
 4. Allow up to 30 minutes for newly created policies to propagate.
+

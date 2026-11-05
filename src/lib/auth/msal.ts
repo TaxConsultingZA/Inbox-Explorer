@@ -87,3 +87,4 @@ export async function getGraphAccessToken(): Promise<string> {
 export function resetMsalClient(): void {
   msalAppInstance = null;
 }
+

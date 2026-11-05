@@ -107,3 +107,4 @@ describe('MailService Graph Queries & Integration', () => {
     expect(message.body?.content).not.toContain('<script');
   });
 });
+

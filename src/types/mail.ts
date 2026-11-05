@@ -97,3 +97,4 @@ export interface UserSession {
   name: string;
   isAuthorized: boolean;
 }
+

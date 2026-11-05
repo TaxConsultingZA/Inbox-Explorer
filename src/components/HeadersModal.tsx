@@ -78,3 +78,4 @@ export function HeadersModal({ isOpen, onClose, headers = [], subject }: Headers
     </div>
   );
 }
+

@@ -179,3 +179,4 @@ npm start
 - [x] Ensure `AZURE_CLIENT_SECRET` and `AUTH_SECRET` are supplied via a secure secrets manager (e.g., Azure Key Vault, AWS Secrets Manager, or Kubernetes Secrets).
 - [x] Ensure `OUTLOOK_MAILBOX_UPN` is scoped via Exchange Online `New-ApplicationAccessPolicy` and verified with `Test-ApplicationAccessPolicy`.
 - [x] Restrict web application access using `AUTH_ALLOWED_USER_OBJECT_IDS`.
+

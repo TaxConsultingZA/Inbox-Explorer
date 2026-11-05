@@ -77,3 +77,4 @@ export const appConfig = {
     defaultPageSize: Math.min(50, Math.max(5, parseInt(rawEnv.GRAPH_PAGE_SIZE, 10) || 30)),
   },
 };
+

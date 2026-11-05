@@ -64,3 +64,4 @@ describe('User Authentication & Allowlist Authorization', () => {
     expect(session?.name).toContain('Dev Mode');
   });
 });
+

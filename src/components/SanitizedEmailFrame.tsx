@@ -110,3 +110,4 @@ export function SanitizedEmailFrame({ htmlContent, isPlainText = false }: Saniti
     </div>
   );
 }
+

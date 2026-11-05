@@ -86,3 +86,4 @@ describe('HTML Sanitization & Email Security', () => {
     expect(escaped).toBe('John &lt;john@example.com&gt; &amp; Jane');
   });
 });
+
