@@ -100,7 +100,7 @@ export default function InboxExplorerPage() {
         setMessages(data.value || []);
         setNextLink(data.nextLink);
 
-        // If no message is selected and we have messages on wide screens, auto-select first message
+        // Auto-select first message only on large desktops (width >= 1024px)
         if (!selectedMessageId && data.value && data.value.length > 0) {
           if (typeof window !== 'undefined' && window.innerWidth >= 1024) {
             setSelectedMessageId(data.value[0].id);
@@ -116,7 +116,6 @@ export default function InboxExplorerPage() {
   );
 
   useEffect(() => {
-    // Reset pagination on filter or search change
     setHistoryPages([]);
     setCurrentPageIndex(0);
     fetchMessages();
@@ -134,17 +133,16 @@ export default function InboxExplorerPage() {
   const handlePrevPage = () => {
     if (currentPageIndex <= 0) return;
     const newHistory = [...historyPages];
-    newHistory.pop(); // remove current
+    newHistory.pop();
     const prevUrl = newHistory[newHistory.length - 1];
     setHistoryPages(newHistory);
     setCurrentPageIndex((prev) => prev - 1);
-    fetchMessages(prevUrl); // if undefined, loads initial page
+    fetchMessages(prevUrl);
   };
 
   // Keyboard navigation shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Skip shortcuts if user is typing in an input or textarea
       if (['INPUT', 'TEXTAREA', 'SELECT'].includes((e.target as HTMLElement).tagName)) {
         if (e.key === 'Escape') {
           (e.target as HTMLElement).blur();
@@ -188,9 +186,9 @@ export default function InboxExplorerPage() {
   const unreadCount = messages.filter((m) => !m.isRead).length;
 
   return (
-    <div className="flex h-screen w-screen overflow-hidden bg-slate-100 dark:bg-slate-950">
+    <div className="flex h-full w-full overflow-hidden bg-slate-100 dark:bg-slate-950">
       {/* Pane A: Sidebar */}
-      <div className="hidden md:flex shrink-0">
+      <div className="hidden md:flex shrink-0 h-full overflow-hidden">
         <Sidebar
           mailboxUpn={connectionStatus?.mailboxUpn}
           unreadCount={unreadCount}
@@ -203,7 +201,7 @@ export default function InboxExplorerPage() {
 
       {/* Pane B: Message List */}
       <div
-        className={`w-full md:w-[380px] lg:w-[420px] shrink-0 h-full ${
+        className={`w-full md:w-[320px] lg:w-[360px] xl:w-[400px] shrink-0 h-full overflow-hidden min-w-0 ${
           selectedMessageId ? 'hidden md:flex' : 'flex'
         }`}
       >
@@ -235,7 +233,7 @@ export default function InboxExplorerPage() {
 
       {/* Pane C: Reading Pane */}
       <div
-        className={`flex-1 h-full min-w-0 ${
+        className={`flex-1 h-full min-w-0 max-w-full overflow-hidden ${
           selectedMessageId ? 'flex' : 'hidden md:flex'
         }`}
       >
@@ -261,4 +259,3 @@ export default function InboxExplorerPage() {
     </div>
   );
 }
-

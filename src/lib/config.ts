@@ -29,11 +29,10 @@ const rawEnv = envSchema.parse({
 const isProd = process.env.NODE_ENV === 'production';
 const rawDevMode = rawEnv.DEV_MODE.toLowerCase() === 'true';
 
-// HARD SECURITY ENFORCEMENT: Dev mode can NEVER be activated in production.
+// HARD SECURITY ENFORCEMENT: Dev mode is strictly deactivated in production.
 if (isProd && rawDevMode) {
-  throw new Error(
-    'CRITICAL SECURITY CONFIGURATION ERROR: DEV_MODE cannot be enabled in a production environment. ' +
-    'Provide valid Microsoft Entra credentials and disable DEV_MODE.'
+  console.warn(
+    '[SECURITY NOTICE] DEV_MODE is disabled in production. Connecting to live Microsoft Entra & Exchange.'
   );
 }
 
@@ -47,6 +46,7 @@ const hasValidEntraConfig = Boolean(
   !rawEnv.AZURE_CLIENT_SECRET.includes('your_entra_app_client_secret')
 );
 
+// Dev mode is strictly impossible in production
 const isDevModeActive = !isProd && (rawDevMode || !hasValidEntraConfig);
 
 export const appConfig = {

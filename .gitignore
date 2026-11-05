@@ -33,6 +33,9 @@ yarn-error.log*
 # Keep template
 !.env.example
 
+# Tasks tracker - ignored from git
+tasks.csv
+
 # vercel
 .vercel
 

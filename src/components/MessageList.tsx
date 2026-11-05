@@ -3,17 +3,14 @@
 import React, { useState, useMemo } from 'react';
 import {
   Search,
-  Filter,
   Paperclip,
   AlertCircle,
   RefreshCw,
-  MailCheck,
   Mail,
   ChevronLeft,
   ChevronRight,
   Layers,
   X,
-  Calendar,
 } from 'lucide-react';
 import { GraphMessage } from '@/types/mail';
 
@@ -79,7 +76,7 @@ export function MessageList({
     return map;
   }, [messages]);
 
-  // If grouping is enabled, we only show the newest message per conversationId, with thread count badge
+  // If grouping is enabled, only show newest message per conversationId
   const displayedMessages = useMemo(() => {
     if (!groupByConversation) return messages;
 
@@ -107,18 +104,18 @@ export function MessageList({
     (dateRange !== 'all' ? 1 : 0);
 
   return (
-    <div className="flex flex-col h-full bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 select-none">
-      {/* Search Header */}
-      <div className="p-3 border-b border-slate-200 dark:border-slate-800 space-y-2">
-        <div className="relative flex items-center">
-          <Search className="w-4 h-4 text-slate-400 absolute left-3 pointer-events-none" />
+    <section className="flex flex-col h-full w-full max-w-full min-w-0 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 select-none overflow-hidden">
+      {/* Search & Filters Header */}
+      <div className="p-3 border-b border-slate-200 dark:border-slate-800 space-y-2 shrink-0 bg-white dark:bg-slate-900 z-10">
+        <div className="relative flex items-center w-full min-w-0">
+          <Search className="w-4 h-4 text-slate-400 absolute left-3 pointer-events-none shrink-0" />
           <input
             ref={searchInputRef}
             type="text"
             value={searchQuery}
             onChange={(e) => onSearchChange(e.target.value)}
             placeholder="Search sender, subject, content (/)"
-            className="w-full pl-9 pr-8 py-1.5 text-xs rounded-md bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-slate-100 placeholder-slate-400 border border-transparent focus:border-outlook-500 focus:bg-white dark:focus:bg-slate-900 focus:outline-none transition-all"
+            className="w-full min-w-0 pl-9 pr-8 py-1.5 text-xs rounded-md bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-slate-100 placeholder-slate-400 border border-transparent focus:border-outlook-500 focus:bg-white dark:focus:bg-slate-900 focus:outline-none transition-all"
           />
           {searchQuery && (
             <button
@@ -132,12 +129,12 @@ export function MessageList({
         </div>
 
         {/* Filters Toolbar */}
-        <div className="flex items-center justify-between gap-1 text-xs">
-          <div className="flex items-center gap-1 overflow-x-auto no-scrollbar py-0.5">
+        <div className="flex items-center justify-between gap-1 text-xs w-full min-w-0 overflow-hidden">
+          <div className="flex items-center gap-1 overflow-x-auto no-scrollbar py-0.5 min-w-0 flex-1">
             {/* Unread Pill */}
             <button
               onClick={onToggleUnreadOnly}
-              className={`px-2.5 py-1 rounded-full text-[11px] font-medium transition-colors flex items-center gap-1 shrink-0 ${
+              className={`px-2.5 py-1 rounded-full text-[11px] font-medium transition-colors shrink-0 ${
                 filterUnreadOnly
                   ? 'bg-outlook-600 text-white font-semibold'
                   : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
@@ -181,14 +178,14 @@ export function MessageList({
             >
               <option value="all">Any Date</option>
               <option value="today">Today</option>
-              <option value="7days">Past 7 Days</option>
-              <option value="30days">Past 30 Days</option>
+              <option value="7days">Past 7d</option>
+              <option value="30days">Past 30d</option>
             </select>
 
             {/* Conversation Grouping Toggle */}
             <button
               onClick={() => setGroupByConversation(!groupByConversation)}
-              className={`p-1.5 rounded-md transition-colors shrink-0 ${
+              className={`p-1 rounded-md transition-colors shrink-0 ${
                 groupByConversation
                   ? 'bg-outlook-100 dark:bg-outlook-950 text-outlook-600 dark:text-outlook-400 font-bold'
                   : 'text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
@@ -212,11 +209,11 @@ export function MessageList({
       </div>
 
       {/* Message Items Feed */}
-      <div className="flex-1 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800/80">
+      <div className="flex-1 overflow-y-auto overflow-x-hidden divide-y divide-slate-100 dark:divide-slate-800/80 w-full min-w-0">
         {isLoading && messages.length === 0 ? (
-          <div className="p-4 space-y-3">
+          <div className="p-3 space-y-3 w-full min-w-0">
             {[1, 2, 3, 4, 5].map((n) => (
-              <div key={n} className="animate-pulse space-y-2 p-3 rounded-md bg-slate-50 dark:bg-slate-800/40">
+              <div key={n} className="animate-pulse space-y-2 p-3 rounded-md bg-slate-50 dark:bg-slate-800/40 w-full min-w-0">
                 <div className="flex items-center justify-between">
                   <div className="h-3.5 bg-slate-200 dark:bg-slate-700 rounded w-1/3" />
                   <div className="h-3 bg-slate-200 dark:bg-slate-700 rounded w-12" />
@@ -227,7 +224,7 @@ export function MessageList({
             ))}
           </div>
         ) : displayedMessages.length === 0 ? (
-          <div className="flex flex-col items-center justify-center p-8 text-center text-slate-400 dark:text-slate-500 h-64">
+          <div className="flex flex-col items-center justify-center p-8 text-center text-slate-400 dark:text-slate-500 h-64 w-full">
             <Mail className="w-10 h-10 mb-2 stroke-[1.2] text-slate-300 dark:text-slate-700" />
             <p className="text-xs font-semibold text-slate-600 dark:text-slate-400">No emails found</p>
             <p className="text-[11px] mt-1 max-w-xs">
@@ -247,7 +244,7 @@ export function MessageList({
               <div
                 key={msg.id}
                 onClick={() => onSelectMessage(msg.id)}
-                className={`group relative p-3 cursor-pointer transition-colors text-left border-l-4 ${
+                className={`group relative p-3 cursor-pointer transition-colors text-left border-l-4 w-full min-w-0 max-w-full overflow-hidden ${
                   isSelected
                     ? 'bg-outlook-50/80 dark:bg-outlook-950/40 border-l-outlook-600'
                     : !msg.isRead
@@ -256,23 +253,24 @@ export function MessageList({
                 }`}
               >
                 {/* Header row: Sender name, indicators, timestamp */}
-                <div className="flex items-center justify-between gap-1 mb-1">
-                  <div className="flex items-center gap-1.5 min-w-0">
+                <div className="flex items-center justify-between gap-1.5 mb-1 w-full min-w-0 overflow-hidden">
+                  <div className="flex items-center gap-1.5 min-w-0 flex-1 overflow-hidden">
                     {!msg.isRead && (
                       <span className="w-2 h-2 rounded-full bg-outlook-600 shrink-0" title="Unread" />
                     )}
                     <span
-                      className={`text-xs truncate ${
+                      className={`text-xs truncate block ${
                         !msg.isRead
                           ? 'font-bold text-slate-900 dark:text-slate-100'
                           : 'font-medium text-slate-700 dark:text-slate-300'
                       }`}
+                      title={senderName}
                     >
                       {senderName}
                     </span>
                   </div>
 
-                  <div className="flex items-center gap-1 shrink-0 text-slate-400 dark:text-slate-500">
+                  <div className="flex items-center gap-1 shrink-0 text-slate-400 dark:text-slate-500 text-[11px]">
                     {msg.importance === 'high' && (
                       <span title="High Importance">
                         <AlertCircle className="w-3.5 h-3.5 text-rose-500 shrink-0" />
@@ -284,11 +282,11 @@ export function MessageList({
                       </span>
                     )}
                     {groupByConversation && threadCount > 1 && (
-                      <span className="px-1.5 py-0.2 rounded-full text-[10px] font-bold bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
+                      <span className="px-1.5 py-0.2 rounded-full text-[10px] font-bold bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 shrink-0">
                         {threadCount}
                       </span>
                     )}
-                    <span className="text-[11px] font-mono text-slate-500 dark:text-slate-400 ml-1">
+                    <span className="font-mono text-slate-500 dark:text-slate-400 ml-1 shrink-0">
                       {formattedDate}
                     </span>
                   </div>
@@ -296,17 +294,18 @@ export function MessageList({
 
                 {/* Subject */}
                 <div
-                  className={`text-xs truncate mb-1 ${
+                  className={`text-xs truncate mb-1 w-full min-w-0 max-w-full overflow-hidden ${
                     !msg.isRead
                       ? 'font-semibold text-slate-900 dark:text-white'
                       : 'text-slate-800 dark:text-slate-200'
                   }`}
+                  title={msg.subject || '(No Subject)'}
                 >
                   {msg.subject || '(No Subject)'}
                 </div>
 
                 {/* Body Preview snippet */}
-                <p className="text-[11px] text-slate-500 dark:text-slate-400 line-clamp-2 leading-relaxed">
+                <p className="text-[11px] text-slate-500 dark:text-slate-400 line-clamp-2 leading-relaxed break-words overflow-hidden w-full min-w-0 max-w-full">
                   {msg.bodyPreview || 'No preview available'}
                 </p>
               </div>
@@ -316,8 +315,8 @@ export function MessageList({
       </div>
 
       {/* Pagination Footer */}
-      <div className="p-2.5 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between text-xs bg-slate-50 dark:bg-slate-950">
-        <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400 text-[11px]">
+      <div className="p-2.5 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between text-xs bg-slate-50 dark:bg-slate-950 shrink-0 w-full min-w-0 overflow-hidden">
+        <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400 text-[11px] shrink-0">
           <span>Page Size:</span>
           <select
             value={pageSize}
@@ -330,7 +329,7 @@ export function MessageList({
           </select>
         </div>
 
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-1 shrink-0">
           <button
             onClick={onPrevPage}
             disabled={!hasPrevPage || isLoading}
@@ -349,7 +348,7 @@ export function MessageList({
           </button>
         </div>
       </div>
-    </div>
+    </section>
   );
 }
 
@@ -370,4 +369,3 @@ function formatTimestamp(isoDateString?: string): string {
   }
   return date.toLocaleDateString([], { month: 'short', day: 'numeric' });
 }
-
