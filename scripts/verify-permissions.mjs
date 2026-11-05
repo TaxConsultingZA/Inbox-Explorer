@@ -347,3 +347,4 @@ runVerification().catch((err) => {
   console.error(`\n${colors.red}${colors.bold}Fatal error executing permission audit:${colors.reset}`, err);
   process.exit(1);
 });
+
