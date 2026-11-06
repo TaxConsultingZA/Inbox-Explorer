@@ -101,6 +101,44 @@ export function MessageList({
     return uniqueMessages;
   }, [messages, groupByConversation]);
 
+  // Outlook Date Section Bucketing (Today, Yesterday, Earlier this week, Last week, Earlier this month, Older)
+  const groupedMessages = useMemo(() => {
+    const groups: { group: string; items: GraphMessage[] }[] = [];
+    const groupMap = new Map<string, GraphMessage[]>();
+
+    for (const msg of displayedMessages) {
+      const g = getDateGroup(msg.receivedDateTime);
+      if (!groupMap.has(g)) {
+        groupMap.set(g, []);
+      }
+      groupMap.get(g)!.push(msg);
+    }
+
+    const priorityOrder = [
+      'Today',
+      'Yesterday',
+      'Earlier this week',
+      'Last week',
+      'Earlier this month',
+      'Older',
+    ];
+
+    for (const p of priorityOrder) {
+      if (groupMap.has(p) && groupMap.get(p)!.length > 0) {
+        groups.push({ group: p, items: groupMap.get(p)! });
+      }
+    }
+
+    // Include any custom buckets if any
+    for (const [k, v] of groupMap.entries()) {
+      if (!priorityOrder.includes(k) && v.length > 0) {
+        groups.push({ group: k, items: v });
+      }
+    }
+
+    return groups;
+  }, [displayedMessages]);
+
   const activeFiltersCount =
     (filterUnreadOnly ? 1 : 0) +
     (filterHasAttachments ? 1 : 0) +
@@ -108,7 +146,7 @@ export function MessageList({
     (dateRange !== 'all' ? 1 : 0);
 
   return (
-    <section className="flex flex-col h-full w-full max-w-full min-w-0 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 select-none overflow-hidden">
+    <section className="flex flex-col h-full w-full max-w-full min-w-0 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 select-none overflow-hidden font-['Segoe_UI',sans-serif]">
       {/* Search & Filters Header */}
       <div className="p-3 border-b border-slate-200 dark:border-slate-800 space-y-2 shrink-0 bg-white dark:bg-slate-900 z-10">
         <div className="flex items-center gap-1.5 w-full min-w-0">
@@ -189,7 +227,7 @@ export function MessageList({
               onClick={onToggleHighImportance}
               className={`px-2.5 py-1 rounded-full text-[11px] font-medium transition-colors flex items-center gap-1 shrink-0 ${
                 filterHighImportance
-                  ? 'bg-amber-600 text-white font-semibold'
+                  ? 'bg-rose-600 text-white font-semibold'
                   : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
               }`}
             >
@@ -237,7 +275,7 @@ export function MessageList({
         </div>
       </div>
 
-      {/* Message Items Feed */}
+      {/* Outlook Message Items Feed with Sticky Date Group Headers */}
       <div className="flex-1 overflow-y-auto overflow-x-hidden divide-y divide-slate-100 dark:divide-slate-800/80 w-full min-w-0">
         {isLoading && messages.length === 0 ? (
           <div className="p-3 space-y-3 w-full min-w-0">
@@ -263,83 +301,98 @@ export function MessageList({
             </p>
           </div>
         ) : (
-          displayedMessages.map((msg) => {
-            const isSelected = msg.id === selectedMessageId;
-            const threadCount = msg.conversationId ? conversationCounts.get(msg.conversationId) || 1 : 1;
-            const senderName = msg.from?.emailAddress?.name || msg.from?.emailAddress?.address || 'Unknown Sender';
-            const formattedDate = formatTimestamp(msg.receivedDateTime);
-
-            return (
-              <div
-                key={msg.id}
-                onClick={() => onSelectMessage(msg.id)}
-                className={`group relative p-3 cursor-pointer transition-colors text-left border-l-4 w-full min-w-0 max-w-full overflow-hidden ${
-                  isSelected
-                    ? 'bg-outlook-50/80 dark:bg-outlook-950/40 border-l-outlook-600'
-                    : !msg.isRead
-                    ? 'bg-white dark:bg-slate-900 border-l-outlook-500 hover:bg-slate-50 dark:hover:bg-slate-800/60'
-                    : 'bg-white dark:bg-slate-900 border-l-transparent hover:bg-slate-50 dark:hover:bg-slate-800/60'
-                }`}
-              >
-                {/* Header row: Sender name, indicators, timestamp */}
-                <div className="flex items-center justify-between gap-1.5 mb-1 w-full min-w-0 overflow-hidden">
-                  <div className="flex items-center gap-1.5 min-w-0 flex-1 overflow-hidden">
-                    {!msg.isRead && (
-                      <span className="w-2 h-2 rounded-full bg-outlook-600 shrink-0" title="Unread" />
-                    )}
-                    <span
-                      className={`text-xs truncate block ${
-                        !msg.isRead
-                          ? 'font-bold text-slate-900 dark:text-slate-100'
-                          : 'font-medium text-slate-700 dark:text-slate-300'
-                      }`}
-                      title={senderName}
-                    >
-                      {senderName}
-                    </span>
-                  </div>
-
-                  <div className="flex items-center gap-1 shrink-0 text-slate-400 dark:text-slate-500 text-[11px]">
-                    {msg.importance === 'high' && (
-                      <span title="High Importance">
-                        <AlertCircle className="w-3.5 h-3.5 text-rose-500 shrink-0" />
-                      </span>
-                    )}
-                    {msg.hasAttachments && (
-                      <span title="Has Attachments">
-                        <Paperclip className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                      </span>
-                    )}
-                    {groupByConversation && threadCount > 1 && (
-                      <span className="px-1.5 py-0.2 rounded-full text-[10px] font-bold bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 shrink-0">
-                        {threadCount}
-                      </span>
-                    )}
-                    <span className="font-mono text-slate-500 dark:text-slate-400 ml-1 shrink-0">
-                      {formattedDate}
-                    </span>
-                  </div>
-                </div>
-
-                {/* Subject */}
-                <div
-                  className={`text-xs truncate mb-1 w-full min-w-0 max-w-full overflow-hidden ${
-                    !msg.isRead
-                      ? 'font-semibold text-slate-900 dark:text-white'
-                      : 'text-slate-800 dark:text-slate-200'
-                  }`}
-                  title={msg.subject || '(No Subject)'}
-                >
-                  {msg.subject || '(No Subject)'}
-                </div>
-
-                {/* Body Preview snippet */}
-                <p className="text-[11px] text-slate-500 dark:text-slate-400 line-clamp-2 leading-relaxed break-words overflow-hidden w-full min-w-0 max-w-full">
-                  {msg.bodyPreview || 'No preview available'}
-                </p>
+          groupedMessages.map(({ group, items }) => (
+            <div key={group} className="w-full min-w-0">
+              {/* Sticky Outlook Date Section Banner */}
+              <div className="sticky top-0 z-10 px-3 py-1 bg-slate-100/90 dark:bg-slate-800/90 backdrop-blur-xs text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider border-b border-slate-200/60 dark:border-slate-700/60 flex items-center justify-between select-none">
+                <span>{group}</span>
+                <span className="text-[10px] font-medium text-slate-400 dark:text-slate-500 font-mono">
+                  {items.length}
+                </span>
               </div>
-            );
-          })
+
+              {/* Message cards in this date bucket */}
+              <div className="divide-y divide-slate-100 dark:divide-slate-800/80">
+                {items.map((msg) => {
+                  const isSelected = msg.id === selectedMessageId;
+                  const threadCount = msg.conversationId ? conversationCounts.get(msg.conversationId) || 1 : 1;
+                  const senderName = msg.from?.emailAddress?.name || msg.from?.emailAddress?.address || 'Unknown Sender';
+                  const formattedDate = formatTimestamp(msg.receivedDateTime);
+
+                  return (
+                    <div
+                      key={msg.id}
+                      onClick={() => onSelectMessage(msg.id)}
+                      className={`group relative p-3 cursor-pointer transition-colors text-left border-l-[3.5px] w-full min-w-0 max-w-full overflow-hidden ${
+                        isSelected
+                          ? 'bg-[#eff6fc] dark:bg-[#1a2638] border-l-outlook-600'
+                          : !msg.isRead
+                          ? 'bg-white dark:bg-slate-900 border-l-outlook-600 hover:bg-slate-50 dark:hover:bg-slate-800/60'
+                          : 'bg-white dark:bg-slate-900 border-l-transparent hover:bg-slate-50 dark:hover:bg-slate-800/60'
+                      }`}
+                    >
+                      {/* Header row: Sender name, indicators, timestamp */}
+                      <div className="flex items-center justify-between gap-1.5 mb-1 w-full min-w-0 overflow-hidden">
+                        <div className="flex items-center gap-1.5 min-w-0 flex-1 overflow-hidden">
+                          {!msg.isRead && (
+                            <span className="w-2 h-2 rounded-full bg-outlook-600 shrink-0" title="Unread" />
+                          )}
+                          <span
+                            className={`text-[13px] truncate block ${
+                              !msg.isRead
+                                ? 'font-semibold text-slate-900 dark:text-slate-100'
+                                : 'font-normal text-slate-700 dark:text-slate-300'
+                            }`}
+                            title={senderName}
+                          >
+                            {senderName}
+                          </span>
+                        </div>
+
+                        <div className="flex items-center gap-1 shrink-0 text-slate-400 dark:text-slate-500 text-[11px]">
+                          {msg.importance === 'high' && (
+                            <span title="High Importance">
+                              <AlertCircle className="w-3.5 h-3.5 text-rose-600 shrink-0" />
+                            </span>
+                          )}
+                          {msg.hasAttachments && (
+                            <span title="Has Attachments">
+                              <Paperclip className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                            </span>
+                          )}
+                          {groupByConversation && threadCount > 1 && (
+                            <span className="px-1.5 py-0.2 rounded-full text-[10px] font-bold bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 shrink-0">
+                              {threadCount}
+                            </span>
+                          )}
+                          <span className="text-slate-500 dark:text-slate-400 ml-1 shrink-0 text-[11px]">
+                            {formattedDate}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Subject */}
+                      <div
+                        className={`text-[12.5px] truncate mb-1 w-full min-w-0 max-w-full overflow-hidden ${
+                          !msg.isRead
+                            ? 'font-semibold text-slate-900 dark:text-white'
+                            : 'text-slate-700 dark:text-slate-200 font-normal'
+                        }`}
+                        title={msg.subject || '(No Subject)'}
+                      >
+                        {msg.subject || '(No Subject)'}
+                      </div>
+
+                      {/* Body Preview snippet */}
+                      <p className="text-[11.5px] text-slate-500 dark:text-slate-400 line-clamp-2 leading-snug break-words overflow-hidden w-full min-w-0 max-w-full">
+                        {msg.bodyPreview || 'No preview available'}
+                      </p>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          ))
         )}
       </div>
 
@@ -360,7 +413,7 @@ export function MessageList({
           </select>
         </div>
 
-        <div className="flex items-center gap-1 shrink-0">
+        <div className="flex items-center gap-1">
           <button
             onClick={onPrevPage}
             disabled={!hasPrevPage || isLoading}
@@ -383,6 +436,27 @@ export function MessageList({
   );
 }
 
+function getDateGroup(isoDateString?: string): string {
+  if (!isoDateString) return 'Older';
+  const date = new Date(isoDateString);
+  const now = new Date();
+
+  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+  const startOfYesterday = startOfToday - 24 * 60 * 60 * 1000;
+  const currentDayOfWeek = now.getDay() || 7; // Monday = 1, Sunday = 7
+  const startOfThisWeek = startOfToday - (currentDayOfWeek - 1) * 24 * 60 * 60 * 1000;
+  const startOfLastWeek = startOfThisWeek - 7 * 24 * 60 * 60 * 1000;
+  const startOfThisMonth = new Date(now.getFullYear(), now.getMonth(), 1).getTime();
+
+  const time = date.getTime();
+  if (time >= startOfToday) return 'Today';
+  if (time >= startOfYesterday) return 'Yesterday';
+  if (time >= startOfThisWeek) return 'Earlier this week';
+  if (time >= startOfLastWeek) return 'Last week';
+  if (time >= startOfThisMonth) return 'Earlier this month';
+  return 'Older';
+}
+
 function formatTimestamp(isoDateString?: string): string {
   if (!isoDateString) return '';
   const date = new Date(isoDateString);
@@ -390,7 +464,7 @@ function formatTimestamp(isoDateString?: string): string {
   const diffDays = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24));
 
   if (diffDays === 0) {
-    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    return date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
   }
   if (diffDays === 1) {
     return 'Yesterday';
@@ -398,5 +472,5 @@ function formatTimestamp(isoDateString?: string): string {
   if (diffDays < 7) {
     return date.toLocaleDateString([], { weekday: 'short' });
   }
-  return date.toLocaleDateString([], { month: 'short', day: 'numeric' });
+  return date.toLocaleDateString([], { month: 'numeric', day: 'numeric', year: '2-digit' });
 }
