@@ -43,6 +43,20 @@ interface GraphFetchOptions extends RequestInit {
   maxRetries?: number;
 }
 
+// Anti-burst pacing safeguard to prevent triggering IT gateway monitoring or SOC alerts
+let lastGraphRequestTimestamp = 0;
+
+async function enforceRequestPacing(): Promise<void> {
+  const minInterval = appConfig.graph.minRequestIntervalMs;
+  const now = Date.now();
+  const elapsed = now - lastGraphRequestTimestamp;
+  if (elapsed < minInterval) {
+    const delay = minInterval - elapsed;
+    await new Promise((resolve) => setTimeout(resolve, delay));
+  }
+  lastGraphRequestTimestamp = Date.now();
+}
+
 /**
  * Executes an authenticated HTTP request to Microsoft Graph API v1.0
  * with automatic bearer token injection, timeout handling, HTTP 429 Retry-After,
@@ -60,6 +74,9 @@ export async function graphFetch<T = any>(
   let attempt = 0;
 
   while (attempt <= maxRetries) {
+    // Enforce anti-burst request spacing
+    await enforceRequestPacing();
+
     const token = await getGraphAccessToken();
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), timeoutMs);

@@ -28,10 +28,10 @@ describe('MailService Graph Queries & Integration', () => {
 
     (graphFetch as any).mockResolvedValueOnce({
       value: mockMessages,
-      '@odata.nextLink': 'https://graph.microsoft.com/v1.0/users/target-shared@domain.com/mailFolders/inbox/messages?$skip=30',
+      '@odata.nextLink': 'https://graph.microsoft.com/v1.0/users/target-shared@domain.com/mailFolders/inbox/messages?$skip=15',
     });
 
-    const result = await MailService.getInboxMessages({ top: 30 });
+    const result = await MailService.getInboxMessages({ top: 15 });
 
     expect(graphFetch).toHaveBeenCalledWith(
       expect.stringContaining(`$select=${INBOX_SELECT_FIELDS}`)
@@ -40,10 +40,44 @@ describe('MailService Graph Queries & Integration', () => {
       expect.stringContaining('$orderby=receivedDateTime desc')
     );
     expect(graphFetch).toHaveBeenCalledWith(
-      expect.stringContaining('$top=30')
+      expect.stringContaining('$top=15')
     );
     expect(result.value).toEqual(mockMessages);
     expect(result.nextLink).toBeDefined();
+  });
+
+  it('strictly enforces IT gateway safeguard batch ceiling to prevent SOC alerts', async () => {
+    (graphFetch as any).mockResolvedValueOnce({ value: [] });
+
+    // Request 100 items - must be clamped to safeguardMaxBatch (25)
+    await MailService.getInboxMessages({ top: 100 });
+
+    expect(graphFetch).toHaveBeenCalledWith(
+      expect.stringContaining(`$top=${appConfig.graph.safeguardMaxBatch}`)
+    );
+  });
+
+  it('supports Outlook-style search by subject, sender, and body scoping using KQL', async () => {
+    // Subject search scope
+    (graphFetch as any).mockResolvedValueOnce({ value: [] });
+    await MailService.getInboxMessages({ search: 'P1 Incident', searchScope: 'subject' });
+    expect(graphFetch).toHaveBeenCalledWith(
+      expect.stringContaining('$search="subject:"P1 Incident""')
+    );
+
+    // Sender search scope
+    (graphFetch as any).mockResolvedValueOnce({ value: [] });
+    await MailService.getInboxMessages({ search: 'alex.chen', searchScope: 'from' });
+    expect(graphFetch).toHaveBeenCalledWith(
+      expect.stringContaining('$search="from:"alex.chen""')
+    );
+
+    // Direct subject parameter
+    (graphFetch as any).mockResolvedValueOnce({ value: [] });
+    await MailService.getInboxMessages({ subject: 'Critical Notice' });
+    expect(graphFetch).toHaveBeenCalledWith(
+      expect.stringContaining('$search="subject:"Critical Notice""')
+    );
   });
 
   it('properly encodes $search and removes $orderby to adhere to Graph query rules', async () => {

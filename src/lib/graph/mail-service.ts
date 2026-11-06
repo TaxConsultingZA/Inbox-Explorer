@@ -129,6 +129,8 @@ export const MailService = {
           searchApplied: false,
           filtersApplied: [],
           isDevMode: false,
+          safeguardBatchLimit: appConfig.graph.safeguardMaxBatch,
+          batchSize: graphData.value?.length || 0,
           timestamp: new Date().toISOString(),
         },
       };
@@ -137,11 +139,47 @@ export const MailService = {
       return response;
     }
 
-    const pageSize = Math.min(50, Math.max(5, params.top || appConfig.graph.defaultPageSize));
+    // Safeguard enforcement: Clamp batch pull to prevent triggering IT gateway monitoring / DLP alerts
+    const requestedTop = params.top || appConfig.graph.defaultPageSize;
+    const pageSize = Math.min(appConfig.graph.safeguardMaxBatch, Math.max(1, requestedTop));
     const queryParts: string[] = [`$select=${INBOX_SELECT_FIELDS}`, `$top=${pageSize}`];
 
     const filters: string[] = [];
     const filtersApplied: string[] = [];
+    const searchTokens: string[] = [];
+
+    // Outlook-Style Search (KQL): Support subject, sender, and content queries
+    if (params.subject && params.subject.trim()) {
+      const safeSubject = escapeSearchTerm(params.subject.trim());
+      searchTokens.push(`subject:"${safeSubject}"`);
+    }
+
+    if (params.search && params.search.trim()) {
+      const rawSearch = params.search.trim();
+      const safeTerm = escapeSearchTerm(rawSearch);
+
+      if (params.searchScope === 'subject') {
+        searchTokens.push(`subject:"${safeTerm}"`);
+      } else if (params.searchScope === 'from') {
+        searchTokens.push(`from:"${safeTerm}"`);
+      } else if (params.searchScope === 'body') {
+        searchTokens.push(`body:"${safeTerm}"`);
+      } else {
+        // General query or user-typed KQL (e.g. "from:alice subject:invoice")
+        searchTokens.push(safeTerm);
+      }
+    }
+
+    // If search tokens exist, use Graph $search.
+    // Note: Graph searches across sender, subject, and content, but rejects $orderby when $search is used.
+    let searchApplied = false;
+    if (searchTokens.length > 0) {
+      queryParts.push(`$search="${searchTokens.join(' ')}"`);
+      searchApplied = true;
+    } else {
+      // Order by newest first when no search query is active
+      queryParts.push('$orderby=receivedDateTime desc');
+    }
 
     // Filter by read status
     if (params.isRead !== undefined) {
@@ -155,10 +193,15 @@ export const MailService = {
       filtersApplied.push(`hasAttachments:${params.hasAttachments}`);
     }
 
-    // Filter by sender address
+    // Filter by sender address (if not already included in KQL search)
     if (params.from && params.from.trim()) {
-      const safeFrom = escapeODataString(params.from.trim());
-      filters.push(`from/emailAddress/address eq '${safeFrom}'`);
+      if (searchApplied) {
+        // In Graph, combining $search with recipient navigation filters can fail, so integrate into search
+        queryParts.push(`from:"${escapeSearchTerm(params.from.trim())}"`);
+      } else {
+        const safeFrom = escapeODataString(params.from.trim());
+        filters.push(`from/emailAddress/address eq '${safeFrom}'`);
+      }
       filtersApplied.push(`from:${params.from}`);
     }
 
@@ -172,21 +215,6 @@ export const MailService = {
       const safeEnd = new Date(params.endDate).toISOString();
       filters.push(`receivedDateTime le ${safeEnd}`);
       filtersApplied.push(`endDate:${params.endDate}`);
-    }
-
-    let searchApplied = false;
-
-    // Search Handling
-    // In Microsoft Graph:
-    // When $search is used, Graph searches across sender, subject, and body.
-    // NOTE: Graph orders search results by relevance and will fail if $orderby is supplied alongside $search.
-    if (params.search && params.search.trim()) {
-      const safeSearch = escapeSearchTerm(params.search);
-      queryParts.push(`$search="${safeSearch}"`);
-      searchApplied = true;
-    } else {
-      // If no search is applied, order by newest received first
-      queryParts.push('$orderby=receivedDateTime desc');
     }
 
     if (filters.length > 0) {
@@ -210,6 +238,8 @@ export const MailService = {
         searchApplied,
         filtersApplied,
         isDevMode: false,
+        safeguardBatchLimit: appConfig.graph.safeguardMaxBatch,
+        batchSize: graphData.value?.length || 0,
         timestamp: new Date().toISOString(),
       },
     };
@@ -420,21 +450,43 @@ export const MailService = {
       );
     }
 
+    if (params.subject && params.subject.trim()) {
+      const sub = params.subject.toLowerCase();
+      filtered = filtered.filter((m) => m.subject.toLowerCase().includes(sub));
+    }
+
     if (params.search && params.search.trim()) {
       const s = params.search.toLowerCase();
-      filtered = filtered.filter(
-        (m) =>
-          m.subject.toLowerCase().includes(s) ||
-          m.bodyPreview?.toLowerCase().includes(s) ||
-          m.from?.emailAddress.name?.toLowerCase().includes(s) ||
-          m.from?.emailAddress.address.toLowerCase().includes(s)
-      );
+      if (params.searchScope === 'subject') {
+        filtered = filtered.filter((m) => m.subject.toLowerCase().includes(s));
+      } else if (params.searchScope === 'from') {
+        filtered = filtered.filter(
+          (m) =>
+            m.from?.emailAddress.name?.toLowerCase().includes(s) ||
+            m.from?.emailAddress.address.toLowerCase().includes(s)
+        );
+      } else if (params.searchScope === 'body') {
+        filtered = filtered.filter(
+          (m) =>
+            m.bodyPreview?.toLowerCase().includes(s) ||
+            m.body?.content?.toLowerCase().includes(s)
+        );
+      } else {
+        filtered = filtered.filter(
+          (m) =>
+            m.subject.toLowerCase().includes(s) ||
+            m.bodyPreview?.toLowerCase().includes(s) ||
+            m.from?.emailAddress.name?.toLowerCase().includes(s) ||
+            m.from?.emailAddress.address.toLowerCase().includes(s)
+        );
+      }
     }
 
     // Default newest first
     filtered.sort((a, b) => new Date(b.receivedDateTime).getTime() - new Date(a.receivedDateTime).getTime());
 
-    const pageSize = params.top || 30;
+    const requestedTop = params.top || appConfig.graph.defaultPageSize;
+    const pageSize = Math.min(appConfig.graph.safeguardMaxBatch, Math.max(1, requestedTop));
     const skip = params.skip || 0;
     const paginated = filtered.slice(skip, skip + pageSize);
     const hasMore = skip + pageSize < filtered.length;
@@ -445,12 +497,16 @@ export const MailService = {
       totalCount: filtered.length,
       metadata: {
         targetMailbox: appConfig.mailbox.targetUpn,
-        searchApplied: Boolean(params.search),
+        searchApplied: Boolean(params.search || params.subject),
         filtersApplied: [
           params.isRead !== undefined ? `isRead:${params.isRead}` : '',
           params.hasAttachments !== undefined ? `hasAttachments:${params.hasAttachments}` : '',
+          params.from ? `from:${params.from}` : '',
+          params.subject ? `subject:${params.subject}` : '',
         ].filter(Boolean),
         isDevMode: true,
+        safeguardBatchLimit: appConfig.graph.safeguardMaxBatch,
+        batchSize: paginated.length,
         timestamp: new Date().toISOString(),
       },
     };

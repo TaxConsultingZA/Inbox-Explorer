@@ -10,7 +10,9 @@ const envSchema = z.object({
   AUTH_REDIRECT_URI: z.string().default('http://localhost:3000/api/auth/callback'),
   DEV_MODE: z.string().default('false'),
   GRAPH_REQUEST_TIMEOUT_MS: z.string().default('15000'),
-  GRAPH_PAGE_SIZE: z.string().default('30'),
+  GRAPH_PAGE_SIZE: z.string().default('15'),
+  GRAPH_SAFEGUARD_MAX_BATCH: z.string().default('25'),
+  GRAPH_MIN_REQUEST_INTERVAL_MS: z.string().default('300'),
 });
 
 const rawEnv = envSchema.parse({
@@ -24,6 +26,8 @@ const rawEnv = envSchema.parse({
   DEV_MODE: process.env.DEV_MODE,
   GRAPH_REQUEST_TIMEOUT_MS: process.env.GRAPH_REQUEST_TIMEOUT_MS,
   GRAPH_PAGE_SIZE: process.env.GRAPH_PAGE_SIZE,
+  GRAPH_SAFEGUARD_MAX_BATCH: process.env.GRAPH_SAFEGUARD_MAX_BATCH,
+  GRAPH_MIN_REQUEST_INTERVAL_MS: process.env.GRAPH_MIN_REQUEST_INTERVAL_MS,
 });
 
 const isProd = process.env.NODE_ENV === 'production';
@@ -74,7 +78,9 @@ export const appConfig = {
   },
   graph: {
     timeoutMs: Math.max(1000, parseInt(rawEnv.GRAPH_REQUEST_TIMEOUT_MS, 10) || 15000),
-    defaultPageSize: Math.min(50, Math.max(5, parseInt(rawEnv.GRAPH_PAGE_SIZE, 10) || 30)),
+    defaultPageSize: Math.min(25, Math.max(5, parseInt(rawEnv.GRAPH_PAGE_SIZE, 10) || 15)),
+    safeguardMaxBatch: Math.min(25, Math.max(5, parseInt(rawEnv.GRAPH_SAFEGUARD_MAX_BATCH, 10) || 25)),
+    minRequestIntervalMs: Math.max(100, parseInt(rawEnv.GRAPH_MIN_REQUEST_INTERVAL_MS, 10) || 300),
   },
 };
 

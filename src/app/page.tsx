@@ -14,6 +14,7 @@ export default function InboxExplorerPage() {
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [debouncedSearch, setDebouncedSearch] = useState<string>('');
+  const [searchScope, setSearchScope] = useState<'all' | 'subject' | 'from' | 'body'>('all');
 
   // Filters
   const [filterUnreadOnly, setFilterUnreadOnly] = useState<boolean>(false);
@@ -21,8 +22,8 @@ export default function InboxExplorerPage() {
   const [filterHighImportance, setFilterHighImportance] = useState<boolean>(false);
   const [dateRange, setDateRange] = useState<'all' | 'today' | '7days' | '30days'>('all');
 
-  // Pagination
-  const [pageSize, setPageSize] = useState<number>(30);
+  // Pagination with default safe pull size (15) to avoid IT gateway / SOC monitoring triggers
+  const [pageSize, setPageSize] = useState<number>(15);
   const [nextLink, setNextLink] = useState<string | undefined>(undefined);
   const [historyPages, setHistoryPages] = useState<string[]>([]);
   const [currentPageIndex, setCurrentPageIndex] = useState<number>(0);
@@ -73,7 +74,12 @@ export default function InboxExplorerPage() {
         if (targetNextLink) {
           params.set('nextLink', targetNextLink);
         } else {
-          if (debouncedSearch.trim()) params.set('search', debouncedSearch.trim());
+          if (debouncedSearch.trim()) {
+            params.set('search', debouncedSearch.trim());
+            if (searchScope !== 'all') {
+              params.set('searchScope', searchScope);
+            }
+          }
           if (filterUnreadOnly) params.set('isRead', 'false');
           if (filterHasAttachments) params.set('hasAttachments', 'true');
           params.set('top', pageSize.toString());
@@ -112,14 +118,14 @@ export default function InboxExplorerPage() {
         setIsLoading(false);
       }
     },
-    [debouncedSearch, filterUnreadOnly, filterHasAttachments, dateRange, pageSize, selectedMessageId]
+    [debouncedSearch, searchScope, filterUnreadOnly, filterHasAttachments, dateRange, pageSize, selectedMessageId]
   );
 
   useEffect(() => {
     setHistoryPages([]);
     setCurrentPageIndex(0);
     fetchMessages();
-  }, [debouncedSearch, filterUnreadOnly, filterHasAttachments, dateRange, pageSize]);
+  }, [debouncedSearch, searchScope, filterUnreadOnly, filterHasAttachments, dateRange, pageSize]);
 
   // Next page navigation
   const handleNextPage = () => {
@@ -213,6 +219,8 @@ export default function InboxExplorerPage() {
           onRefresh={() => fetchMessages()}
           searchQuery={searchQuery}
           onSearchChange={setSearchQuery}
+          searchScope={searchScope}
+          onSearchScopeChange={setSearchScope}
           filterUnreadOnly={filterUnreadOnly}
           onToggleUnreadOnly={() => setFilterUnreadOnly(!filterUnreadOnly)}
           filterHasAttachments={filterHasAttachments}

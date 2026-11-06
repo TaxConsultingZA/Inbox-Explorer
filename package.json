@@ -9,7 +9,8 @@
     "lint": "next lint",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:permissions": "node scripts/verify-permissions.mjs"
+    "test:permissions": "node scripts/verify-permissions.mjs",
+    "test:live": "node scripts/test-live-mailbox.mjs"
   },
   "dependencies": {
     "@azure/msal-node": "^2.16.0",

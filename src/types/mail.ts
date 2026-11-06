@@ -52,6 +52,8 @@ export interface GraphAttachment {
 
 export interface InboxQueryParams {
   search?: string;
+  subject?: string;
+  searchScope?: 'all' | 'subject' | 'from' | 'body';
   isRead?: boolean;
   hasAttachments?: boolean;
   from?: string;
@@ -71,6 +73,8 @@ export interface InboxResponse {
     searchApplied: boolean;
     filtersApplied: string[];
     isDevMode: boolean;
+    safeguardBatchLimit: number;
+    batchSize: number;
     timestamp: string;
   };
 }

@@ -22,6 +22,8 @@ interface MessageListProps {
   onRefresh: () => void;
   searchQuery: string;
   onSearchChange: (query: string) => void;
+  searchScope?: 'all' | 'subject' | 'from' | 'body';
+  onSearchScopeChange?: (scope: 'all' | 'subject' | 'from' | 'body') => void;
   filterUnreadOnly: boolean;
   onToggleUnreadOnly: () => void;
   filterHasAttachments: boolean;
@@ -47,6 +49,8 @@ export function MessageList({
   onRefresh,
   searchQuery,
   onSearchChange,
+  searchScope = 'all',
+  onSearchScopeChange,
   filterUnreadOnly,
   onToggleUnreadOnly,
   filterHasAttachments,
@@ -107,24 +111,48 @@ export function MessageList({
     <section className="flex flex-col h-full w-full max-w-full min-w-0 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 select-none overflow-hidden">
       {/* Search & Filters Header */}
       <div className="p-3 border-b border-slate-200 dark:border-slate-800 space-y-2 shrink-0 bg-white dark:bg-slate-900 z-10">
-        <div className="relative flex items-center w-full min-w-0">
-          <Search className="w-4 h-4 text-slate-400 absolute left-3 pointer-events-none shrink-0" />
-          <input
-            ref={searchInputRef}
-            type="text"
-            value={searchQuery}
-            onChange={(e) => onSearchChange(e.target.value)}
-            placeholder="Search sender, subject, content (/)"
-            className="w-full min-w-0 pl-9 pr-8 py-1.5 text-xs rounded-md bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-slate-100 placeholder-slate-400 border border-transparent focus:border-outlook-500 focus:bg-white dark:focus:bg-slate-900 focus:outline-none transition-all"
-          />
-          {searchQuery && (
-            <button
-              onClick={() => onSearchChange('')}
-              className="absolute right-2.5 p-0.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded"
-              title="Clear search"
+        <div className="flex items-center gap-1.5 w-full min-w-0">
+          <div className="relative flex-1 flex items-center min-w-0">
+            <Search className="w-4 h-4 text-slate-400 absolute left-3 pointer-events-none shrink-0" />
+            <input
+              ref={searchInputRef}
+              type="text"
+              value={searchQuery}
+              onChange={(e) => onSearchChange(e.target.value)}
+              placeholder={
+                searchScope === 'subject'
+                  ? 'Search by subject...'
+                  : searchScope === 'from'
+                  ? 'Search by sender...'
+                  : searchScope === 'body'
+                  ? 'Search message body...'
+                  : 'Search sender, subject, content (/)'
+              }
+              className="w-full min-w-0 pl-9 pr-8 py-1.5 text-xs rounded-md bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-slate-100 placeholder-slate-400 border border-transparent focus:border-outlook-500 focus:bg-white dark:focus:bg-slate-900 focus:outline-none transition-all"
+            />
+            {searchQuery && (
+              <button
+                onClick={() => onSearchChange('')}
+                className="absolute right-2.5 p-0.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded"
+                title="Clear search"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            )}
+          </div>
+
+          {onSearchScopeChange && (
+            <select
+              value={searchScope}
+              onChange={(e) => onSearchScopeChange(e.target.value as any)}
+              className="px-2 py-1.5 text-[11px] font-medium bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-md border border-transparent focus:border-outlook-500 outline-none cursor-pointer shrink-0"
+              title="Target search field (Outlook-style)"
             >
-              <X className="w-3.5 h-3.5" />
-            </button>
+              <option value="all">All Fields</option>
+              <option value="subject">Subject</option>
+              <option value="from">Sender</option>
+              <option value="body">Body</option>
+            </select>
           )}
         </div>
 
@@ -316,16 +344,18 @@ export function MessageList({
 
       {/* Pagination Footer */}
       <div className="p-2.5 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between text-xs bg-slate-50 dark:bg-slate-950 shrink-0 w-full min-w-0 overflow-hidden">
-        <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400 text-[11px] shrink-0">
-          <span>Page Size:</span>
+        <div className="flex items-center gap-1.5 text-slate-500 dark:text-slate-400 text-[11px] shrink-0">
+          <span title="Safeguard: limits items pulled per request to avoid IT gateway monitoring alerts">Batch:</span>
           <select
             value={pageSize}
             onChange={(e) => onPageSizeChange(Number(e.target.value))}
-            className="px-1.5 py-0.5 rounded bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 text-xs"
+            className="px-1.5 py-0.5 rounded bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 text-xs cursor-pointer"
+            title="Safe pull limit per page (safeguard ceiling: 25)"
           >
-            <option value={15}>15</option>
-            <option value={30}>30</option>
-            <option value={50}>50</option>
+            <option value={5}>5 (Safe)</option>
+            <option value={10}>10</option>
+            <option value={15}>15 (Default)</option>
+            <option value={25}>25 (Max Safe)</option>
           </select>
         </div>
 

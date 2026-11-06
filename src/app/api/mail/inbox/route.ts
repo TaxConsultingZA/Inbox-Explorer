@@ -9,6 +9,8 @@ export const dynamic = 'force-dynamic';
 
 const querySchema = z.object({
   search: z.string().optional(),
+  subject: z.string().optional(),
+  searchScope: z.enum(['all', 'subject', 'from', 'body']).optional(),
   isRead: z.enum(['true', 'false']).optional().transform((v) => (v === undefined ? undefined : v === 'true')),
   hasAttachments: z.enum(['true', 'false']).optional().transform((v) => (v === undefined ? undefined : v === 'true')),
   from: z.string().optional(),
@@ -27,6 +29,8 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const parsed = querySchema.safeParse({
       search: searchParams.get('search') || undefined,
+      subject: searchParams.get('subject') || undefined,
+      searchScope: searchParams.get('searchScope') || undefined,
       isRead: searchParams.get('isRead') || undefined,
       hasAttachments: searchParams.get('hasAttachments') || undefined,
       from: searchParams.get('from') || undefined,
