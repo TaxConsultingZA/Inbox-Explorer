@@ -10,7 +10,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:permissions": "node scripts/verify-permissions.mjs",
-    "test:live": "node scripts/test-live-mailbox.mjs"
+    "test:live": "node scripts/test-live-mailbox.mjs",
+    "test:query": "node scripts/test-user-query.mjs"
   },
   "dependencies": {
     "@azure/msal-node": "^2.16.0",

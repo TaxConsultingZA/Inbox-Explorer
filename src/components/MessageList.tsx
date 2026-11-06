@@ -30,8 +30,8 @@ interface MessageListProps {
   onToggleHasAttachments: () => void;
   filterHighImportance: boolean;
   onToggleHighImportance: () => void;
-  dateRange: 'all' | 'today' | '7days' | '30days';
-  onDateRangeChange: (range: 'all' | 'today' | '7days' | '30days') => void;
+  dateRange: 'all' | '24hours' | 'today' | '7days' | '30days';
+  onDateRangeChange: (range: 'all' | '24hours' | 'today' | '7days' | '30days') => void;
   pageSize: number;
   onPageSizeChange: (size: number) => void;
   hasNextPage: boolean;
@@ -205,6 +205,7 @@ export function MessageList({
               title="Filter by received date"
             >
               <option value="all">Any Date</option>
+              <option value="24hours">Last 24 Hours</option>
               <option value="today">Today</option>
               <option value="7days">Past 7d</option>
               <option value="30days">Past 30d</option>

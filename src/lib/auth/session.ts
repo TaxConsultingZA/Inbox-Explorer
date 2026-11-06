@@ -9,44 +9,42 @@ const SESSION_COOKIE_NAME = 'inbox_explorer_session';
  * is in the server-configured allowlist (AUTH_ALLOWED_USER_OBJECT_IDS).
  */
 export async function getSession(request?: Request | NextRequest): Promise<UserSession | null> {
-  // If in Local Development Mode, simulate an authorized session
-  if (appConfig.isDevMode) {
+  // Check request headers or cookies for explicit authenticated user claims first
+  const userOid = request?.headers?.get('x-ms-client-principal-id') ||
+                  request?.headers?.get('x-user-oid');
+  const userEmail = request?.headers?.get('x-ms-client-principal-name') ||
+                    request?.headers?.get('x-user-email') ||
+                    'authenticated-user@domain.com';
+  const userName = request?.headers?.get('x-user-name') || userEmail;
+
+  if (userOid) {
+    // Check against authorized user allowlist if configured
+    const allowed = appConfig.auth.allowedObjectIds.length === 0 ||
+                    appConfig.auth.allowedObjectIds.includes(userOid);
+
+    return {
+      userObjectId: userOid,
+      email: userEmail,
+      name: userName,
+      isAuthorized: allowed,
+    };
+  }
+
+  // Local Development Fallback:
+  // When running locally in development (non-production), grant an authorized localhost session.
+  // This allows accessing http://localhost:3000 without requiring an external Entra OIDC reverse proxy.
+  if (!appConfig.isProduction) {
     const devOid = appConfig.auth.allowedObjectIds[0] || 'dev-local-user-oid-0001';
     return {
       userObjectId: devOid,
-      email: 'admin.auditor@contoso.onmicrosoft.com',
-      name: 'Entra Mailbox Auditor (Dev Mode)',
+      email: appConfig.mailbox.targetUpn || 'admin.auditor@contoso.onmicrosoft.com',
+      name: 'Authorized Local Developer (Dev Mode)',
       isAuthorized: true,
     };
   }
 
-  // Check request headers or cookies for authenticated user claims
-  if (!request) {
-    return null;
-  }
-
-  const userOid = request.headers.get('x-ms-client-principal-id') ||
-                  request.headers.get('x-user-oid');
-  const userEmail = request.headers.get('x-ms-client-principal-name') ||
-                    request.headers.get('x-user-email') ||
-                    'authenticated-user@domain.com';
-  const userName = request.headers.get('x-user-name') || userEmail;
-
-  if (!userOid) {
-    // In production, an unauthenticated request returns null
-    return null;
-  }
-
-  // Check against authorized user allowlist if configured
-  const allowed = appConfig.auth.allowedObjectIds.length === 0 ||
-                  appConfig.auth.allowedObjectIds.includes(userOid);
-
-  return {
-    userObjectId: userOid,
-    email: userEmail,
-    name: userName,
-    isAuthorized: allowed,
-  };
+  // In production, an unauthenticated request returns null
+  return null;
 }
 
 /**

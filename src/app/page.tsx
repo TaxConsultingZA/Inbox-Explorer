@@ -20,7 +20,7 @@ export default function InboxExplorerPage() {
   const [filterUnreadOnly, setFilterUnreadOnly] = useState<boolean>(false);
   const [filterHasAttachments, setFilterHasAttachments] = useState<boolean>(false);
   const [filterHighImportance, setFilterHighImportance] = useState<boolean>(false);
-  const [dateRange, setDateRange] = useState<'all' | 'today' | '7days' | '30days'>('all');
+  const [dateRange, setDateRange] = useState<'all' | '24hours' | 'today' | '7days' | '30days'>('all');
 
   // Pagination with default safe pull size (15) to avoid IT gateway / SOC monitoring triggers
   const [pageSize, setPageSize] = useState<number>(15);
@@ -84,7 +84,10 @@ export default function InboxExplorerPage() {
           if (filterHasAttachments) params.set('hasAttachments', 'true');
           params.set('top', pageSize.toString());
 
-          if (dateRange === 'today') {
+          if (dateRange === '24hours') {
+            const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+            params.set('startDate', twentyFourHoursAgo.toISOString());
+          } else if (dateRange === 'today') {
             const startOfToday = new Date();
             startOfToday.setHours(0, 0, 0, 0);
             params.set('startDate', startOfToday.toISOString());

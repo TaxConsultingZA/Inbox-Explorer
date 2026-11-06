@@ -4,6 +4,7 @@ import { appConfig } from '@/lib/config';
 
 describe('User Authentication & Allowlist Authorization', () => {
   beforeEach(() => {
+    appConfig.isProduction = false;
     appConfig.isDevMode = false;
     appConfig.auth.allowedObjectIds = ['allowed-guid-1234', 'allowed-guid-5678'];
   });
@@ -40,6 +41,7 @@ describe('User Authentication & Allowlist Authorization', () => {
   });
 
   it('rejects unauthenticated requests (401 Unauthorized) in production', async () => {
+    appConfig.isProduction = true;
     const mockRequest = new Request('http://localhost:3000/api/mail/inbox', {
       headers: {},
     });
